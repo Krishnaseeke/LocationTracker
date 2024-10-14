@@ -4,6 +4,7 @@ package com.locationandservicetrackers.www.homescreen
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.widget.Toast
@@ -30,7 +31,7 @@ import com.google.android.gms.location.*
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun HomeScreen(context: Context,modifier: Modifier) {
+fun HomeScreen(context: Context, modifier: Modifier = Modifier) {
     val locationPermissionState = rememberMultiplePermissionsState(
         listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -38,7 +39,6 @@ fun HomeScreen(context: Context,modifier: Modifier) {
         )
     )
 
-    // Request permissions if not granted
     LaunchedEffect(Unit) {
         if (!locationPermissionState.allPermissionsGranted) {
             locationPermissionState.launchMultiplePermissionRequest()
@@ -47,7 +47,7 @@ fun HomeScreen(context: Context,modifier: Modifier) {
 
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
     var isLocationUpdatesEnabled by remember { mutableStateOf(false) }
-    val locationList = remember { mutableStateListOf<Location>() } // Initialize location list
+    val locationList = remember { mutableStateListOf<Location>() }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -62,13 +62,11 @@ fun HomeScreen(context: Context,modifier: Modifier) {
         }
     }
 
-    // Check and request location permissions
     LaunchedEffect(Unit) {
-        val locationPermissionCheckResult = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-        if (locationPermissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             startLocationUpdates(fusedLocationClient, context) { location ->
                 locationList.add(location)
             }
@@ -78,7 +76,6 @@ fun HomeScreen(context: Context,modifier: Modifier) {
         }
     }
 
-    // UI Layout
     Column(
         modifier = Modifier
             .background(Color.White)
@@ -92,7 +89,6 @@ fun HomeScreen(context: Context,modifier: Modifier) {
             fontWeight = FontWeight.Bold
         )
 
-        // Display captured location list
         LazyColumn {
             items(locationList) { location ->
                 Row {
@@ -101,8 +97,18 @@ fun HomeScreen(context: Context,modifier: Modifier) {
                 }
             }
         }
+
+        // Button to start background location service
+        androidx.compose.material3.Button(onClick = {
+            val intent = Intent(context, LocationService::class.java)
+            intent.putExtra("name", "Location Tracker Service")
+            ContextCompat.startForegroundService(context, intent)
+        }) {
+            Text(text = "Start Location Service")
+        }
     }
 }
+
 
 // Function to start capturing location updates every 10 seconds
 fun startLocationUpdates(
