@@ -28,88 +28,64 @@ class LocationService : Service() {
         super.onCreate()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         createNotificationChannel()
-        acquireWakeLock() // Prevent CPU from sleeping
+        acquireWakeLock()
         startLocationUpdates()
     }
 
     @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification("Waiting for location...")
-        startForeground(1, notification) // Start service in the foreground
+        startForeground(1, notification)
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
         fusedLocationClient.removeLocationUpdates(locationCallback)
-        wakeLock?.release() // Release the WakeLock
-        Log.d("LocationService", "Service stopped")
+        wakeLock?.release()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun acquireWakeLock() {
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "LocationService::WakeLock"
-        )
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "LocationService::WakeLock")
         wakeLock?.acquire()
     }
 
     private fun startLocationUpdates() {
         val locationRequest = LocationRequest.create().apply {
-            interval = 10_000 // 10 seconds
+            interval = 10_000
             fastestInterval = 5_000
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            maxWaitTime = 15_000  // To ensure updates during Doze mode
         }
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
-                val location = locationResult.lastLocation
-                if (location != null) {
-                    updateNotification(location)
-                }
+                locationResult.lastLocation?.let { updateNotification(it) }
             }
         }
 
-        // Check if permissions are granted
-        if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.e("LocationService", "Permissions not granted. Stopping service.")
-            stopSelf() // Stop the service if permissions are missing
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            stopSelf()
             return
         }
 
-        // Request location updates
-        try {
-            fusedLocationClient.requestLocationUpdates(
-                locationRequest, locationCallback, null
-            )
-        } catch (e: SecurityException) {
-            Log.e("LocationService", "SecurityException: ${e.message}")
-            stopSelf() // Stop the service on exception
-        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
     }
 
     private fun buildNotification(content: String): Notification {
         val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Location Tracking")
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(pendingIntent)
-            .setOngoing(true) // Prevent swiping away
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setOngoing(true)
             .build()
     }
 
@@ -118,16 +94,11 @@ class LocationService : Service() {
         val notification = buildNotification(content)
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.notify(1, notification)
-        Log.d("LocationService", "Location Updated: $content")
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Location Service Channel",
-            NotificationManager.IMPORTANCE_LOW
-        )
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        val channel = NotificationChannel(CHANNEL_ID, "Location Service Channel", NotificationManager.IMPORTANCE_HIGH)
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 }
+

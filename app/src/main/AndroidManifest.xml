@@ -33,8 +33,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".homescreen.LocationService"
-            tools:ignore="Instantiatable" />
+        <service
+            android:name=".homescreen.LocationService"
+            android:exported="false"
+            android:foregroundServiceType="location"
+            tools:ignore="ForegroundServicePermission, Instantiatable" /> <!-- Combine tools:ignore attributes -->
+
     </application>
 
 </manifest>
