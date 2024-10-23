@@ -1,7 +1,5 @@
 package com.locationandservicetrackers.www.homescreen
 
-
-
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -11,17 +9,18 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -38,6 +37,7 @@ fun HomeScreen(context: Context, modifier: Modifier = Modifier) {
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
+
 
     LaunchedEffect(Unit) {
         if (!locationPermissionState.allPermissionsGranted) {
@@ -76,39 +76,84 @@ fun HomeScreen(context: Context, modifier: Modifier = Modifier) {
         }
     }
 
+    val currentLocation by derivedStateOf { locationList.lastOrNull() }
+
+
     Column(
         modifier = Modifier
             .background(Color.White)
             .fillMaxSize()
+            .padding(16.dp), Arrangement.Center,Alignment.CenterHorizontally
     ) {
         Text(
             text = "Location is Capturing",
             color = Color.Black,
-            fontSize = 16.sp,
+            fontSize = 26.sp,
             fontStyle = FontStyle.Normal,
             fontWeight = FontWeight.Bold
         )
 
-        LazyColumn {
-            items(locationList) { location ->
-                Row {
-                    Text(text = "Lat: ${location.latitude}", modifier = Modifier.weight(1f))
-                    Text(text = "Lng: ${location.longitude}", modifier = Modifier.weight(1f))
+
+        // Single Circular Button to toggle start/stop service
+        Surface(
+            modifier = Modifier
+                .size(100.dp)
+                .padding(top = 16.dp),
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = if (isLocationUpdatesEnabled) Color.Red else Color.Green
+        ) {
+            IconButton(onClick = {
+                if (isLocationUpdatesEnabled) {
+                    stopLocationService(context)
+                    isLocationUpdatesEnabled = false
+                } else {
+                    startLocationService(context)
+                    isLocationUpdatesEnabled = true
                 }
+            }) {
+                Text(
+                    text = if (isLocationUpdatesEnabled) "Stop" else "Start",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
             }
         }
 
-        // Button to start background location service
-        androidx.compose.material3.Button(onClick = {
-            val intent = Intent(context, LocationService::class.java)
-            intent.putExtra("name", "Location Tracker Service")
-            ContextCompat.startForegroundService(context, intent)
-        }) {
-            Text(text = "Start Location Service")
-        }
+
+        currentLocation?.let { location ->
+            Row(
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+                    .fillMaxWidth().padding(10.dp),Arrangement.Center
+            ) {
+                Text(text = "Lat: ${location.latitude}", color = Color.Black,)
+                Spacer(modifier = Modifier.padding(5.dp))
+                Text(text = "Lng: ${location.longitude}", color = Color.Black,)
+            }
+        } ?: Text(
+            text = "Waiting for location...",
+            fontSize = 18.sp,
+            color = Color.Black,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+
     }
 }
 
+// Function to start the background location service
+fun startLocationService(context: Context) {
+    val intent = Intent(context, LocationService::class.java)
+    intent.putExtra("name", "Location Tracker Service")
+    ContextCompat.startForegroundService(context, intent)
+}
+
+// Function to stop the background location service
+fun stopLocationService(context: Context) {
+    val intent = Intent(context, LocationService::class.java)
+    context.stopService(intent)
+}
 
 // Function to start capturing location updates every 10 seconds
 fun startLocationUpdates(
