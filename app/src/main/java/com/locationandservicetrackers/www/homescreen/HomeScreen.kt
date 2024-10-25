@@ -1,6 +1,7 @@
 package com.locationandservicetrackers.www.homescreen
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -28,6 +29,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.*
 
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(context: Context, modifier: Modifier = Modifier) {
@@ -75,6 +77,7 @@ fun HomeScreen(context: Context, modifier: Modifier = Modifier) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
+
 
     val currentLocation by derivedStateOf { locationList.lastOrNull() }
 
