@@ -77,14 +77,18 @@ class LocationService : Service() {
 
     private fun buildNotification(content: String): Notification {
         val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, notificationIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Location Tracking")
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_LOW)  // Avoids intrusive notifications
+            .setOnlyAlertOnce(true)  // Ensures no new alert is triggered on update
             .setOngoing(true)
             .build()
     }
@@ -92,13 +96,17 @@ class LocationService : Service() {
     private fun updateNotification(location: Location) {
         val content = "Lat: ${location.latitude}, Lng: ${location.longitude}"
         val notification = buildNotification(content)
+
+        // Update the notification silently
         val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(1, notification)
+        notificationManager.notify(1, notification)  // Same notification ID to replace the previous one
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(CHANNEL_ID, "Location Service Channel", NotificationManager.IMPORTANCE_HIGH)
+        val channel = NotificationChannel(
+            CHANNEL_ID, "Location Service Channel",
+            NotificationManager.IMPORTANCE_LOW  // Lower importance to avoid alerts
+        )
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 }
-

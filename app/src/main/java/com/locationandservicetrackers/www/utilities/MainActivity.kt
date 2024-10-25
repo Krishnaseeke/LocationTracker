@@ -22,13 +22,13 @@ class MainActivity : ComponentActivity() {
             LocationTrackerTheme {
                 // Pass context to HomeScreen
                 val context = this
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+
                     // Apply padding to HomeScreen to prevent UI overlap issues
                     HomeScreen(
                         context = context,
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding()
                     )
-                }
+
             }
         }
     }
